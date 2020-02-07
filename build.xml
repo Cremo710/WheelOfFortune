@@ -1,0 +1,170 @@
+<?xml version="1.0"?>
+<project name="project B" basedir="." default="AdminExecute">
+   <property file = "build.properties"/>
+	   		
+	<target name="create-database">  
+		<echo message="generazione database..."/>
+ 		<sql driver="org.postgresql.Driver" url="jdbc:postgresql://${host}:${port}/"  userid="${username}" password="${password}" autocommit="true">
+			<transaction>
+				CREATE DATABASE ${dbname};
+			</transaction>	
+			 <classpath>
+               				<pathelement path="Server_src/lib/postgresql-42.2.5.jar"/>  
+            			 </classpath> 
+		</sql>
+    		
+	</target>
+
+	<target name="create-table" depends="create-database">  
+		<echo message="creazione tabelle..."/>
+ 		<sql driver="org.postgresql.Driver" url="jdbc:postgresql://${host}:${port}/${dbname}"  userid="${username}" password="${password}">
+			<transaction  src="Server_src/db.sql"/>	 
+			 <classpath>
+               				<pathelement path="Server_src/lib/postgresql-42.2.5.jar"/>  
+            			 </classpath> 
+		</sql>
+    		
+	</target>
+
+	<target name="ServerFolder" depends="create-table">
+   		<mkdir dir="ServerRdF"/>
+		<echo message="cartella generata..."/>
+		<mkdir dir="ServerRdF/bin"/>
+		<copy todir="ServerRdF/bin/img">
+  		<fileset dir="Server_src/img"/>
+		</copy>
+		<copy todir="ServerRdF/bin/phrases">
+  		<fileset dir="Server_src/phrases"/>
+		</copy>
+		<copy todir="ServerRdF/bin/lib">
+  		<fileset dir="Server_src/lib"/>
+		</copy>
+		<path id="classpath">
+  		<fileset dir="ServerRdF/bin/lib">
+   			<include name="*.jar"/>
+  		</fileset>
+ 		<pathelement path= "ServerRdF/bin"/>
+		</path>
+		<path id="classpath">
+   			<fileset dir="ServerRdF/bin/lib" includes="**/*.jar"/>
+		</path>
+		<javac srcdir="Server_src" destdir="ServerRdF/bin" includeantruntime="false" classpathref="classpath" />
+		<mkdir dir="ServerRdF/jar" />
+		<jar update="true" destfile="ServerRdF/jar/ServerRdF.jar" basedir="ServerRdF/bin">
+			<exclude name="**/img/**" />
+			<exclude name="**/lib/**" />
+			<exclude name="**/phrases/**" />
+    			<zipgroupfileset dir="Server_src/lib" includes="activation.jar" />
+			<zipgroupfileset dir="Server_src/lib" includes="javax.mail-1.5.6.jar" />
+			<zipgroupfileset dir="Server_src/lib" includes="postgresql-42.2.5.jar" />
+  		 		<manifest>
+        					<attribute name="DependencyFinder" value="main"/>
+      				                <attribute name="Main-Class" value="game.ServerRdF"/>
+    				</manifest>
+		</jar>
+  	</target>
+
+	<target name="ClientFolder" depends="ServerFolder">
+   		<mkdir dir="ClientRdF"/>
+		<echo message="cartella generata..."/>
+		<mkdir dir="ClientRdF/bin"/>
+		<copy todir="ClientRdF/bin/Immagini">
+  		<fileset dir="Client_src/Immagini"/>
+		</copy>
+		<copy todir="ClientRdF/bin/gif">
+  		<fileset dir="Client_src/gif"/>
+		</copy>
+		<copy todir="ClientRdF/bin/suoni">
+  		<fileset dir="Client_src/suoni"/>
+		</copy>
+		<javac srcdir="Client_src" destdir="ClientRdF/bin" includeantruntime="false" />
+		<mkdir dir="ClientRdF/jar" />
+		<jar update="true" destfile="ClientRdF/jar/ClientRdF.jar" basedir="ClientRdF/bin" >
+			<exclude name="**/suoni/**" />
+			<exclude name="**/Immagini/**" />
+			<exclude name="**/gif/**" />
+			<manifest>
+      				<attribute name="Main-Class" value="game.ClientRdF"/>
+    			</manifest>	
+		</jar>	
+  	</target>
+
+	<target name="AdminFolder" depends="ClientFolder">
+   		<mkdir dir="AdminRdF"/>
+		<echo message="cartella generata..."/>
+		<mkdir dir="AdminRdF/bin"/>
+		<copy todir="AdminRdF/bin/Immagini">
+  		<fileset dir="Admin_src/Immagini"/>
+		</copy>
+		<copy todir="AdminRdF/bin/gif">
+  		<fileset dir="Admin_src/gif"/>
+		</copy>
+		<javac srcdir="Admin_src" destdir="AdminRdF/bin" includeantruntime="false" />
+		<mkdir dir="AdminRdF/jar" />
+		<jar update="true" destfile="AdminRdF/jar/AdminRdF.jar" basedir="AdminRdF/bin" >
+			<exclude name="**/Immagini/**" />
+			<exclude name="**/gif/**" />
+			<manifest>
+      				<attribute name="Main-Class" value="game.AdminRdF"/>
+    			</manifest>	
+		</jar>
+  	</target>
+
+	<target name="JavadocServer" depends="AdminFolder" >
+		<echo message="generazione documentazione..."/>
+    		<javadoc sourcepath="Server_src" destdir="ServerRdF/doc" classpathref="classpath" />
+ 	</target>
+
+	<target name="JavadocClient" depends="JavadocServer">
+		<echo message="generazione documentazione..."/>
+    		<javadoc sourcepath="Client_src" destdir="ClientRdF/doc"/>
+ 	</target>
+
+	<target name="JavadocAdmin" depends="JavadocClient">
+		<echo message="generazione documentazione..."/>
+    		<javadoc sourcepath="Admin_src" destdir="AdminRdF/doc"/>
+ 	</target>
+
+	<target name="ServerExecute" depends="JavadocAdmin">
+		<echo message="avvio ServerRdF..."/>
+		<copy todir="ServerRdF/jar/img">
+  		<fileset dir="Server_src/img"/>
+		</copy>
+		<copy todir="ServerRdF/jar/phrases">
+  		<fileset dir="Server_src/phrases"/>
+		</copy>
+		<java jar="ServerRdF/jar/ServerRdF.jar" fork="true" spawn="true" classpath="ServerRdF/jar" dir="ServerRdF/jar"/>
+	</target>
+
+
+	<target name="ClientExecute" depends="ServerExecute">
+		<echo message="avvio ClientRdF..."/>
+		<copy todir="ClientRdF/jar/Immagini">
+  		<fileset dir="Client_src/Immagini"/>
+		</copy>
+		<copy todir="ClientRdF/jar/gif">
+  		<fileset dir="Client_src/gif"/>
+		</copy>
+		<copy todir="ClientRdF/jar/suoni">
+  		<fileset dir="Client_src/suoni"/>
+		</copy>
+		<java jar="ClientRdF/jar/ClientRdF.jar" fork="true" spawn="true" classpath="ClientRdF/jar" dir="ClientRdF/jar"/>
+		<java jar="ClientRdF/jar/ClientRdF.jar" fork="true" spawn="true" classpath="ClientRdF/jar" dir="ClientRdF/jar"/>
+		<java jar="ClientRdF/jar/ClientRdF.jar" fork="true" spawn="true" classpath="ClientRdF/jar" dir="ClientRdF/jar"/>
+	</target>
+
+	<target name="AdminExecute" depends="ClientExecute">
+		<echo message="avvio AdminRdF..."/>
+		<copy todir="AdminRdF/jar/Immagini">
+  		<fileset dir="Admin_src/Immagini"/>
+		</copy>
+		<copy todir="AdminRdF/jar/gif">
+  		<fileset dir="Admin_src/gif"/>
+		</copy>
+		<java jar="AdminRdF/jar/AdminRdF.jar" fork="true" spawn="true" classpath="AdminRdF/jar" dir="AdminRdF/jar"/>
+	</target>
+
+	
+</project>
+
+
